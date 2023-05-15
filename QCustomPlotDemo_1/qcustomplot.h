@@ -2634,11 +2634,12 @@ public:
   void add(const DataType &data);
   void removeBefore(double sortKey);
   void removeAfter(double sortKey);
-  void remove(double sortKeyFrom, double sortKeyTo);
+  void remove(double sortKeyFrom, double sortKeyTo,bool resetX=false);
   void remove(double sortKey);
   void clear();
   void sort();
   void squeeze(bool preAllocation=true, bool postAllocation=true);
+  void reserve(int size);
   
   const_iterator constBegin() const { return mData.constBegin()+mPreallocSize; }
   const_iterator constEnd() const { return mData.constEnd(); }
@@ -2666,6 +2667,11 @@ protected:
   void performAutoSqueeze();
 };
 
+template <class DataType>
+void QCPDataContainer<DataType>::reserve(int size)
+{
+	mData.reserve(size);
+}
 
 
 // include implementation in header since it is a class template:
@@ -2993,13 +2999,25 @@ void QCPDataContainer<DataType>::removeAfter(double sortKey)
   \see removeBefore, removeAfter, clear
 */
 template <class DataType>
-void QCPDataContainer<DataType>::remove(double sortKeyFrom, double sortKeyTo)
+void QCPDataContainer<DataType>::remove(double sortKeyFrom, double sortKeyTo, bool resetX)
 {
   if (sortKeyFrom >= sortKeyTo || isEmpty())
     return;
   
   QCPDataContainer<DataType>::iterator it = std::lower_bound(begin(), end(), DataType::fromSortKey(sortKeyFrom), qcpLessThanSortKey<DataType>);
   QCPDataContainer<DataType>::iterator itEnd = std::upper_bound(it, end(), DataType::fromSortKey(sortKeyTo), qcpLessThanSortKey<DataType>);
+  auto loopIt = itEnd;
+  if (resetX)
+  {
+	  int diff = sortKeyTo - sortKeyFrom;
+	  for (loopIt; loopIt != mData.end(); ++loopIt)
+	  {
+		  QCPGraphData* data = (QCPGraphData*)(loopIt);
+		  auto key = data->key;
+		  data->setkey(key - diff);
+	  }
+  }
+
   mData.erase(it, itEnd);
   if (mAutoSqueeze)
     performAutoSqueeze();
@@ -5474,6 +5492,8 @@ public:
   inline double mainValue() const { return value; }
   
   inline QCPRange valueRange() const { return QCPRange(value, value); }
+
+  inline void setkey(double key_) { key = key_; }
   
   double key, value;
 };
@@ -5487,7 +5507,7 @@ Q_DECLARE_TYPEINFO(QCPGraphData, Q_PRIMITIVE_TYPE);
   This template instantiation is the container in which QCPGraph holds its data. For details about
   the generic container, see the documentation of the class template \ref QCPDataContainer.
   
-  \see QCPGraphData, QCPGraph::setData
+  \see QCPGraphData, QCPGraph::setDatax
 */
 typedef QCPDataContainer<QCPGraphData> QCPGraphDataContainer;
 
@@ -5518,7 +5538,7 @@ public:
   Q_ENUMS(LineStyle)
   
   explicit QCPGraph(QCPAxis *keyAxis, QCPAxis *valueAxis);
-  virtual ~QCPGraph() Q_DECL_OVERRIDE;
+  virtual ~QCPGraph() Q_DECL_OVERRIDE; 
   
   // getters:
   QSharedPointer<QCPGraphDataContainer> data() const { return mDataContainer; }

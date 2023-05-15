@@ -23,7 +23,7 @@
 **          Version: 2.1.1                                                **
 ****************************************************************************/
 
-#include "qcustomplot.h"
+#include <qcustomplot.h>
 
 
 /* including file 'src/vector2d.cpp'       */
@@ -15149,6 +15149,12 @@ void QCustomPlot::replot(QCustomPlot::RefreshPriority refreshPriority)
   foreach (QSharedPointer<QCPAbstractPaintBuffer> buffer, mPaintBuffers)
     buffer->setInvalidated(false);
   
+  /* if (mSelectionRect)
+   {
+	   QCPPainter painter(this);
+	   mSelectionRect->draw(&painter);
+   }*/
+
   if ((refreshPriority == rpRefreshHint && mPlottingHints.testFlag(QCP::phImmediateRefresh)) || refreshPriority==rpImmediateRefresh)
     repaint();
   else
